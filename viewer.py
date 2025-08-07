@@ -1,20 +1,26 @@
-# viewer.py
-
-from flask import Flask, send_from_directory, render_template_string
+from flask import Flask, request, send_from_directory, render_template_string
 import os
+from datetime import datetime
 
 app = Flask(__name__)
-# É uma boa prática definir o caminho da pasta de forma absoluta
-# para evitar problemas de diretório de trabalho.
 SCREENSHOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'screenshots')
+os.makedirs(SCREENSHOT_FOLDER, exist_ok=True)
 
-# Cria a pasta se ela não existir (bom para o primeiro deploy)
-if not os.path.exists(SCREENSHOT_FOLDER):
-    os.makedirs(SCREENSHOT_FOLDER)
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'screenshot' not in request.files:
+        return {"error": "Arquivo 'screenshot' não enviado"}, 400
+
+    file = request.files['screenshot']
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"screenshot_{timestamp}.png"
+    filepath = os.path.join(SCREENSHOT_FOLDER, filename)
+    file.save(filepath)
+
+    return {"status": "ok", "filename": filename}, 200
 
 @app.route('/')
 def index():
-    # Adicionado um tratamento para caso a pasta esteja vazia
     if not os.path.exists(SCREENSHOT_FOLDER) or not os.listdir(SCREENSHOT_FOLDER):
         return "<h1>Nenhuma imagem encontrada na pasta 'screenshots'.</h1>"
         
@@ -30,5 +36,3 @@ def index():
 @app.route('/img/<path:nome>')
 def serve_img(nome):
     return send_from_directory(SCREENSHOT_FOLDER, nome)
-
-# A parte 'if __name__ == "__main__":' foi removida.

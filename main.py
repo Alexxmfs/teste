@@ -1,28 +1,35 @@
 # main.py
 
 import pyautogui
-import os
-from datetime import datetime
-import keyboard  # pip install keyboard
+import keyboard
+import requests
+from io import BytesIO
 
-# Criar pasta "screenshots" se não existir
-os.makedirs("screenshots", exist_ok=True)
+API_URL = "https://teste-1-tl2o.onrender.com/upload"  # Seu endpoint no Render
 
-def tirar_print():
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"screenshots/screenshot_{timestamp}.png"
+def tirar_e_enviar():
     screenshot = pyautogui.screenshot()
-    screenshot.save(filename)
-    print(f"[OK] Screenshot salva: {filename}")
+    buffer = BytesIO()
+    screenshot.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    files = {'screenshot': ('screenshot.png', buffer, 'image/png')}
+    
+    try:
+        response = requests.post(API_URL, files=files)
+        if response.status_code == 200:
+            print("[OK] Screenshot enviada com sucesso!")
+        else:
+            print("[ERRO] Falha ao enviar:", response.status_code, response.text)
+    except Exception as e:
+        print("[ERRO] Falha de conexão:", e)
 
 def main():
-    print("Pressione '/' para tirar um screenshot. Pressione ESC para sair.")
+    print("Pressione '/' para tirar screenshot e enviar. Pressione ESC para sair.")
     while True:
         if keyboard.is_pressed('/'):
-            tirar_print()
-            # Evitar múltiplos prints enquanto a tecla estiver pressionada
-            keyboard.wait('/')  
-
+            tirar_e_enviar()
+            keyboard.wait('/')
         if keyboard.is_pressed('esc'):
             print("Saindo...")
             break
